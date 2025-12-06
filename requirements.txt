@@ -1,0 +1,4 @@
+supabase
+fastapi
+uvicorn
+python-dotenv
