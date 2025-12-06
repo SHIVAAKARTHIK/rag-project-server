@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from routes import users
+from routes import users,project
 
 
 
@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(users.router)
+app.include_router(project.router)
 
 @app.get("/")
 def read_root():
