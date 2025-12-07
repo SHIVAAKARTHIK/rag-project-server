@@ -36,9 +36,6 @@ async def get_projects(current_user_clerk_id: str = Depends(get_current_user)):
             "data": projects_query_result.data or [],
         }
 
-    except HTTPException as e:
-        raise e
-
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -156,11 +153,73 @@ async def delete_project(
             "data": successfully_deleted_project,
         }
 
-    except HTTPException as e:
-        raise e
+    
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"An internal server error occurred while deleting project: {str(e)}",
         )
+        
+@router.get("/{project_id}")
+async def get_projects(
+    project_id: str,
+    clerk_id: str = Depends(get_current_user)
+):
+    try:
+        result = supabase.table('projects').select("*").eq("id",project_id).eq("clerk_id",clerk_id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404,detail="Project not found")
+        
+        return{
+            "message":"Project retrieved successfully",
+            "data": result.data[0]
+        }
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get the project: {str(e)}",
+        )
+
+@router.get("/{project_id}/chats")
+async def get_projects_chats(
+    project_id: str,
+    clerk_id: str = Depends(get_current_user)
+):
+    try:
+        result = supabase.table('chats').select("*").eq("project_id",project_id).eq("clerk_id",clerk_id).order("created_at",desc=True).execute()
+        
+        return{
+            "message":"Project retrieved successfully",
+            "data": result.data or []
+        }
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get the project : {str(e)}",
+        )
+
+@router.get("/{project_id}/settings")
+async def get_projects_settings(
+    project_id: str,
+    clerk_id: str = Depends(get_current_user)
+):
+    try:
+        result = supabase.table('project_settings').select("*").eq("project_id",project_id).execute()
+        if not result.data:
+            raise HTTPException(status_code=404,detail="Project settings not found")
+        
+        return{
+            "message":"Project settings retrieved successfully",
+            "data": result.data[0]
+        }
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get the project settings : {str(e)}",
+        )
+        
