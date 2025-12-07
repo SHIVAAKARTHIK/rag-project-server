@@ -3,3 +3,4 @@ fastapi
 uvicorn
 python-dotenv
 clerk_backend_api
+svix

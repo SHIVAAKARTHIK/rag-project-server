@@ -17,7 +17,6 @@ async def get_current_user(request:Request) -> str:
             )
         )
         
-        print(request_state)
         if not request_state.is_signed_in:
             raise HTTPException(
             status_code=401,
