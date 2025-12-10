@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from botocore.config import Config
 import os
 import uuid
+import tempfile
+
 
 load_dotenv()
 
@@ -77,6 +79,34 @@ class S3Service:
         except ClientError as e:
             raise Exception(f"Failed to generate download URL: {str(e)}")
 
+    
+    def download_file_to_temp(self, file_key: str,document_id:str,file_type:str) -> str:
+        """Download file from S3 to temp folder."""
+        try:
+            # Get extension
+            if "/" in file_type:
+                extension = file_type.split("/")[-1]
+            else:
+                extension = file_type.lstrip(".")
+            
+            # Use system temp directory (cross-platform)
+            temp_dir = tempfile.gettempdir()  # Windows: C:\Users\...\Temp, Linux: /tmp
+            
+            # Create path properly
+            temp_file = os.path.join(temp_dir, f"{document_id}.{extension}")
+            
+            print(f"Downloaded to: {temp_file}")
+            self.s3_client.download_file(
+                self.bucket_name,
+                file_key,
+                temp_file
+            )
+            
+            return temp_file
+            
+        except ClientError as e:
+            raise Exception(f"Failed to download file: {str(e)}")
+    
     def delete_file(self, file_key: str) -> bool:
         """Delete a file from S3."""
         try:

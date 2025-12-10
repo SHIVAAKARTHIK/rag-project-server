@@ -1,5 +1,7 @@
+from turtle import delay
 from fastapi import APIRouter, HTTPException, Depends
 from database import supabase
+from tasks import processing_document
 from .auth import get_current_user
 from pydantic import BaseModel,Field
 from services.s3_service import S3Service
@@ -105,7 +107,16 @@ async def confirm_file_upload(
         if not result.data:
             raise HTTPException(status_code=404,details="Document not found or access denied")
         
+        document = result.data[0]
+        document_id = document['id']
+        
         # Start the background preprocessing of the current file
+        task = processing_document.delay(document_id)
+
+        # store this in db to tracking
+        supabase.table("project_documents").update({
+            "task_id": task.id
+        }).eq("id",document_id).execute()
         
         # retrun json
         return{
@@ -121,7 +132,7 @@ async def confirm_file_upload(
         )
         
 @router.post("/{project_id}/urls")
-async def process_url(
+async def website_process_url(
     project_id: str,
     url: UrlRequest,
     current_user_clerk_id: str = Depends(get_current_user),
@@ -172,28 +183,17 @@ async def process_url(
                 detail="Failed to create project document with URL Record - invalid data provided",
             )
 
-        # ! Celery - Starts Background Processing - RAG Ingestion Task
-        # document_id = document_creation_result.data[0]["id"]
-        # task_result = perform_rag_ingestion_task.delay(document_id)
-        # task_id = task_result.id
+        document = document_creation_result.data[0]
+        document_id = document['id']
+        
+        # Start the background preprocessing of the current file
+        task = processing_document.delay(document_id)
 
-        # document_update_result = (
-        #     supabase.table("project_documents")
-        #     .update(
-        #         {
-        #             "task_id": task_id,
-        #         }
-        #     )
-        #     .eq("id", document_id)
-        #     .execute()
-        # )
-
-        # if not document_update_result.data:
-        #     raise HTTPException(
-        #         status_code=422,
-        #         detail="Failed to update project document record with task_id",
-        #     )
-
+        # store this in db to tracking
+        supabase.table("project_documents").update({
+            "task_id": task.id
+        }).eq("id",document_id).execute()
+        
         return {
             "message": "Website URL added to database successfully And Started Background Pre-Processing of this URL",
             "data": document_creation_result.data[0],
